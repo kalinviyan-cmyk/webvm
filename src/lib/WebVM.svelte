@@ -141,17 +141,33 @@
 	}
 	function setScreenSize(display)
 	{
-		var internalMult = 1.0;
 		var displayWidth = display.offsetWidth;
 		var displayHeight = display.offsetHeight;
-		var minWidth = 1024;
-		var minHeight = 768;
-		if(displayWidth < minWidth)
-			internalMult = minWidth / displayWidth;
-		if(displayHeight < minHeight)
-			internalMult = Math.max(internalMult, minHeight / displayHeight);
-		var internalWidth = Math.floor(displayWidth * internalMult);
-		var internalHeight = Math.floor(displayHeight * internalMult);
+		// Android tablets with 4 GB RAM need a smaller framebuffer. The old
+		// 1024x768 minimum could upscale small screens and waste memory/bandwidth.
+		var isLowMemoryDevice = /Android/i.test(navigator.userAgent) ||
+			(typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4);
+		var internalMult = 1.0;
+		if(isLowMemoryDevice)
+		{
+			// Keep the aspect ratio and cap the framebuffer at about 0.4 megapixels.
+			var maxPixels = 800 * 500;
+			var pixelCount = displayWidth * displayHeight;
+			if(pixelCount > maxPixels)
+				internalMult = Math.sqrt(maxPixels / pixelCount);
+		}
+		else
+		{
+			// Preserve the original desktop minimum resolution on computers.
+			var minWidth = 1024;
+			var minHeight = 768;
+			if(displayWidth < minWidth)
+				internalMult = minWidth / displayWidth;
+			if(displayHeight < minHeight)
+				internalMult = Math.max(internalMult, minHeight / displayHeight);
+		}
+		var internalWidth = Math.max(1, Math.floor(displayWidth * internalMult));
+		var internalHeight = Math.max(1, Math.floor(displayHeight * internalMult));
 		cx.setKmsCanvas(display, internalWidth, internalHeight);
 		// Compute the size to be used for AI screenshots
 		var screenshotMult = 1.0;
