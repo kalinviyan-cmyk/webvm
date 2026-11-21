@@ -3,9 +3,8 @@ import { browser } from '$app/environment'
 import { aiActivity } from '$lib/activities.js'
 import { tryPlausible } from '$lib/plausible.js';
 
-import Anthropic from '@anthropic-ai/sdk';
-
 var client = null;
+var apiKey = null;
 var messages = [];
 var stopFlag = false;
 var lastScreenshot = null;
@@ -14,7 +13,8 @@ var screenshotCtx = null;
 
 export function setApiKey(key)
 {
-	client = new Anthropic({apiKey: key, dangerouslyAllowBrowser: true});
+	apiKey = key;
+	client = null;
 	// Reset messages
 	messages = []
 	messageList.set(messages);
@@ -26,6 +26,8 @@ export function setApiKey(key)
 function clearApiKey()
 {
 	localStorage.removeItem("anthropic-api-key");
+	apiKey = null;
+	client = null;
 	apiState.set("KEY_REQUIRED");
 }
 
@@ -40,6 +42,12 @@ async function sendMessages(handleTool)
 	aiActivity.set(true);
 	try
 	{
+		// Load the large AI SDK only when the user actually sends a prompt.
+		if(client == null)
+		{
+			const { default: Anthropic } = await import('@anthropic-ai/sdk');
+			client = new Anthropic({apiKey: apiKey, dangerouslyAllowBrowser: true});
+		}
 		var dc = get(displayConfig);
 		var tool = dc ? { type: "computer_20250124", name: "computer", display_width_px: dc.width, display_height_px: dc.height, display_number: 1 } : { type: "bash_20250124", name: "bash" }
 		const config = {max_tokens: 2048,
