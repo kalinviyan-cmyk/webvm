@@ -5,6 +5,7 @@
 	import NetworkingTab from './NetworkingTab.svelte';
 	import CpuTab from './CpuTab.svelte';
 	import DiskTab from './DiskTab.svelte';
+	import MemoryTab from './MemoryTab.svelte';
 	import AnthropicTab from './AnthropicTab.svelte';
 	import OtherAITab from './OtherAITab.svelte';
 	import PostsTab from './PostsTab.svelte';
@@ -17,6 +18,7 @@
 		{ icon: 'fas fa-wifi', info: 'Networking', activity: null },
 		{ icon: 'fas fa-microchip', info: 'CPU', activity: cpuActivity },
 		{ icon: 'fas fa-compact-disc', info: 'Disk', activity: diskActivity },
+		{ icon: 'fas fa-memory', info: 'RAM', activity: null },
 		{ icon: 'fas fa-robot', info: 'ClaudeAI', activity: aiActivity },
 		{ icon: 'fas fa-wand-magic-sparkles', info: 'Gemini/OpenAI', activity: aiActivity },
 		null,
@@ -109,6 +111,8 @@
 			<CpuTab/>
 		{:else if activeInfo === 'Disk'}
 			<DiskTab on:reset/>
+		{:else if activeInfo === 'RAM'}
+			<MemoryTab/>
 		{:else if activeInfo === 'ClaudeAI'}
 			<AnthropicTab handleTool={handleTool} />
 		{:else if activeInfo === 'Gemini/OpenAI'}
