@@ -145,18 +145,46 @@
 	}
 	function setScreenSize(display)
 	{
-		// Render the Linux desktop at a fixed 240p framebuffer.
-		// The canvas is CSS-sized to the full display area below, so the
-		// browser smoothly upscales this 426x240 image to the available screen.
-		var internalWidth = 426;
-		var internalHeight = 240;
+		var displayWidth = display.offsetWidth;
+		var displayHeight = display.offsetHeight;
+		// Android tablets with 4 GB RAM need a smaller framebuffer. The old
+		// 1024x768 minimum could upscale small screens and waste memory/bandwidth.
+		var isLowMemoryDevice = /Android/i.test(navigator.userAgent) ||
+			(typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4);
+		var internalMult = 1.0;
+		if(isLowMemoryDevice)
+		{
+			// Keep the aspect ratio and cap the framebuffer at about 0.4 megapixels.
+			var maxPixels = 800 * 500;
+			var pixelCount = displayWidth * displayHeight;
+			if(pixelCount > maxPixels)
+				internalMult = Math.sqrt(maxPixels / pixelCount);
+		}
+		else
+		{
+			// Preserve the original desktop minimum resolution on computers.
+			var minWidth = 1024;
+			var minHeight = 768;
+			if(displayWidth < minWidth)
+				internalMult = minWidth / displayWidth;
+			if(displayHeight < minHeight)
+				internalMult = Math.max(internalMult, minHeight / displayHeight);
+		}
+		var internalWidth = Math.max(1, Math.floor(displayWidth * internalMult));
+		var internalHeight = Math.max(1, Math.floor(displayHeight * internalMult));
 		cx.setKmsCanvas(display, internalWidth, internalHeight);
-		// AI screenshots use the same native framebuffer dimensions.
-		displayConfig.set({
-			width: internalWidth,
-			height: internalHeight,
-			mouseMult: internalWidth / Math.max(1, display.offsetWidth)
-		});
+		// Compute the size to be used for AI screenshots
+		var screenshotMult = 1.0;
+		var maxWidth = 1024;
+		var maxHeight = 768;
+		if(internalWidth > maxWidth)
+			screenshotMult = maxWidth / internalWidth;
+		if(internalHeight > maxHeight)
+			screenshotMult = Math.min(screenshotMult, maxHeight / internalHeight);
+		var screenshotWidth = Math.floor(internalWidth * screenshotMult);
+		var screenshotHeight = Math.floor(internalHeight * screenshotMult);
+		// Track the state of the mouse as requested by the AI, to avoid losing the position due to user movement
+		displayConfig.set({width: screenshotWidth, height: screenshotHeight, mouseMult: internalMult * screenshotMult});
 	}
 	var curInnerWidth = 0;
 	var curInnerHeight = 0;
@@ -405,8 +433,14 @@
 			{#if !guiReady}
 				<div class="absolute top-0 bottom-0 {sideBarPinned ? 'left-[23.5rem]' : 'left-14'} right-0 z-20 flex flex-col items-center justify-center gap-4 bg-neutral-950 text-gray-200">
 					<div class="h-10 w-10 rounded-full border-4 border-neutral-700 border-t-sky-400 animate-spin"></div>
-					<p class="text-lg font-semibold">Starting graphical desktop</p>
-					<p class="text-sm text-gray-400">Loading Alpine Linux and initializing the display…</p>
+					<p class="text-lg font-semibold">{startupError ? 'Linux startup failed' : startupStatus}</p>
+					{#if startupError}
+						<div class="max-w-2xl rounded bg-red-950 p-3 text-sm text-red-200 break-words">{startupError}</div>
+					{:else if startupSlow}
+						<p class="max-w-xl text-center text-sm text-amber-300">Startup is taking longer than expected. The VM may be waiting for the graphical display to initialize.</p>
+					{:else}
+						<p class="text-sm text-gray-400">Please wait while Alpine Linux starts…</p>
+					{/if}
 				</div>
 			{/if}
 		{/if}
