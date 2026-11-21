@@ -287,25 +287,46 @@
 		switch(configObj.diskImageType)
 		{
 			case "cloud":
-				try
 				{
-					blockDevice = await CheerpX.CloudDevice.create(configObj.diskImageUrl);
-				}
-				catch(e)
-				{
-					// Report the failure and try again with plain HTTP
-					var wssProtocol = "wss:";
-					if(configObj.diskImageUrl.startsWith(wssProtocol))
+					// Mobile networks/browsers can leave a cloud-disk WebSocket
+					// pending without rejecting it. Prefer HTTPS range requests
+					// on Android, and put a limit on either connection attempt.
+					const diskUrl = configObj.diskImageUrl;
+					const isWebSocket = diskUrl.startsWith("wss:");
+					const httpsUrl = isWebSocket ? "https:" + diskUrl.substr(4) : diskUrl;
+					const wsUrl = isWebSocket ? diskUrl : "wss:" + diskUrl.substr(6);
+					const isAndroid = /Android/i.test(navigator.userAgent);
+					const urls = isAndroid ? [httpsUrl, wsUrl] : [diskUrl, httpsUrl];
+					let lastError = null;
+					for(const url of urls)
 					{
-						// WebSocket protocol failed, try agin using plain HTTP
-						tryPlausible("WS Disk failure");
-						blockDevice = await CheerpX.CloudDevice.create("https:" + configObj.diskImageUrl.substr(wssProtocol.length));
+						startupStatus = url.startsWith("https:")
+							? "Connecting to the Alpine disk over HTTPS…"
+							: "Connecting to the Alpine disk over WebSocket…";
+						let timeoutId;
+						try
+						{
+							blockDevice = await Promise.race([
+								CheerpX.CloudDevice.create(url),
+								new Promise((_, reject) => {
+									timeoutId = setTimeout(() => reject(new Error("Disk connection timed out")), 15000);
+								})
+							]);
+							clearTimeout(timeoutId);
+							break;
+						}
+						catch(e)
+						{
+							clearTimeout(timeoutId);
+							lastError = e;
+							if(url === httpsUrl)
+								tryPlausible("HTTPS Disk failure");
+							else
+								tryPlausible("WS Disk failure");
+						}
 					}
-					else
-					{
-						// No other recovery option
-						throw e;
-					}
+					if(blockDevice == null)
+						throw new Error("Could not connect to the Alpine disk using HTTPS or WebSocket: " + (lastError?.message || String(lastError)));
 				}
 				break;
 			case "bytes":
