@@ -26,6 +26,7 @@
 	var blockCache = null;
 	var processCount = 0;
 	var curVT = 0;
+	let guiReady = false;
 	var sideBarPinned = false;
 	function writeData(buf, vt)
 	{
@@ -232,6 +233,7 @@
 		curVT = vt;
 		if(vt != 7)
 			return;
+		guiReady = true;
 		// Raise the display to the foreground
 		const display = document.getElementById("display");
 		display.parentElement.style.zIndex = 5;
@@ -375,9 +377,16 @@
 			<slot></slot>
 		</SideBar>
 		{#if configObj.needsDisplay}
-			<div class="absolute top-0 bottom-0 {sideBarPinned ? 'left-[23.5rem]' : 'left-14'} right-0">
+			<div class="absolute top-0 bottom-0 {sideBarPinned ? 'left-[23.5rem]' : 'left-14'} right-0 z-10">
 				<canvas class="w-full h-full cursor-none" id="display"></canvas>
 			</div>
+			{#if !guiReady}
+				<div class="absolute top-0 bottom-0 {sideBarPinned ? 'left-[23.5rem]' : 'left-14'} right-0 z-20 flex flex-col items-center justify-center gap-4 bg-neutral-950 text-gray-200">
+					<div class="h-10 w-10 rounded-full border-4 border-neutral-700 border-t-sky-400 animate-spin"></div>
+					<p class="text-lg font-semibold">Starting graphical desktop</p>
+					<p class="text-sm text-gray-400">Loading Alpine Linux and initializing the display…</p>
+				</div>
+			{/if}
 		{/if}
 		<div class="absolute top-0 bottom-0 {sideBarPinned ? 'left-[23.5rem]' : 'left-14'} right-0 p-1 scrollbar" id="console">
 		</div>
