@@ -141,46 +141,18 @@
 	}
 	function setScreenSize(display)
 	{
-		var displayWidth = display.offsetWidth;
-		var displayHeight = display.offsetHeight;
-		// Android tablets with 4 GB RAM need a smaller framebuffer. The old
-		// 1024x768 minimum could upscale small screens and waste memory/bandwidth.
-		var isLowMemoryDevice = /Android/i.test(navigator.userAgent) ||
-			(typeof navigator.deviceMemory === "number" && navigator.deviceMemory <= 4);
-		var internalMult = 1.0;
-		if(isLowMemoryDevice)
-		{
-			// Keep the aspect ratio and cap the framebuffer at about 0.4 megapixels.
-			var maxPixels = 800 * 500;
-			var pixelCount = displayWidth * displayHeight;
-			if(pixelCount > maxPixels)
-				internalMult = Math.sqrt(maxPixels / pixelCount);
-		}
-		else
-		{
-			// Preserve the original desktop minimum resolution on computers.
-			var minWidth = 1024;
-			var minHeight = 768;
-			if(displayWidth < minWidth)
-				internalMult = minWidth / displayWidth;
-			if(displayHeight < minHeight)
-				internalMult = Math.max(internalMult, minHeight / displayHeight);
-		}
-		var internalWidth = Math.max(1, Math.floor(displayWidth * internalMult));
-		var internalHeight = Math.max(1, Math.floor(displayHeight * internalMult));
+		// Render the Linux desktop at a fixed 240p framebuffer.
+		// The canvas is CSS-sized to the full display area below, so the
+		// browser smoothly upscales this 426x240 image to the available screen.
+		var internalWidth = 426;
+		var internalHeight = 240;
 		cx.setKmsCanvas(display, internalWidth, internalHeight);
-		// Compute the size to be used for AI screenshots
-		var screenshotMult = 1.0;
-		var maxWidth = 1024;
-		var maxHeight = 768;
-		if(internalWidth > maxWidth)
-			screenshotMult = maxWidth / internalWidth;
-		if(internalHeight > maxHeight)
-			screenshotMult = Math.min(screenshotMult, maxHeight / internalHeight);
-		var screenshotWidth = Math.floor(internalWidth * screenshotMult);
-		var screenshotHeight = Math.floor(internalHeight * screenshotMult);
-		// Track the state of the mouse as requested by the AI, to avoid losing the position due to user movement
-		displayConfig.set({width: screenshotWidth, height: screenshotHeight, mouseMult: internalMult * screenshotMult});
+		// AI screenshots use the same native framebuffer dimensions.
+		displayConfig.set({
+			width: internalWidth,
+			height: internalHeight,
+			mouseMult: internalWidth / Math.max(1, display.offsetWidth)
+		});
 	}
 	var curInnerWidth = 0;
 	var curInnerHeight = 0;
