@@ -5,7 +5,6 @@
 	import PanelButton from './PanelButton.svelte';
 	import SmallButton from './SmallButton.svelte';
 	import { aiActivity } from './activities.js';
-	import html2canvas from 'html2canvas-pro';
 	export let handleTool;
 	let stopRequested = false;
 	function handleKeyEnter(e)
@@ -61,6 +60,7 @@
 	}
 
 	async function handleDownload() {
+		const { default: html2canvas } = await import('html2canvas-pro');
 		const messageListElement = document.getElementById('message-list');
 		// Temporarily add padding and background for the list
 		messageListElement.classList.add("p-1");
