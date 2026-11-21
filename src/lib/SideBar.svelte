@@ -28,36 +28,12 @@
 	];
 	let dispatch = createEventDispatcher();
 	let activeInfo = null; // Tracks currently visible info.
-	let hideTimeout = 0; // Timeout for hiding info panel.
 	export let sideBarPinned;
 
-	function showInfo(info) {
-		clearTimeout(hideTimeout);
-		hideTimeout = 0;
-		activeInfo = info;
-	}
-	function hideInfo() {
-		// Never remove the sidebar if pinning is enabled
-		if(sideBarPinned)
-			return;
-		// Prevents multiple timers and hides the info panel after 400ms unless interrupted.
-		clearTimeout(hideTimeout);
-		hideTimeout = setTimeout(() => {
-			activeInfo = null;
-			hideTimeout = 0;
-		}, 400);
-	}
-	function handleMouseEnterPanel() {
-		clearTimeout(hideTimeout);
-		hideTimeout = 0;
-	}
-	// Toggles the info panel for the clicked icon.
+	// Menus open only on an explicit click/tap. Hover-driven opening and
+	// mouseleave closing are unreliable on touchscreens.
 	function handleClick(icon) {
-		// Mouse/touch enter already opens the panel. Do not toggle it closed
-		// when the subsequent click event arrives (especially on touch screens).
-		activeInfo = icon.info;
-		clearTimeout(hideTimeout);
-		hideTimeout = 0;
+		activeInfo = activeInfo === icon.info ? null : icon.info;
 	}
 
 	function toggleSidebarPin() {
@@ -68,7 +44,7 @@
 	export let handleTool;
 </script>
 
-<div class="relative z-30 flex flex-row w-14 h-full bg-neutral-700" >
+<div class="relative z-[100] flex flex-row w-14 h-full bg-neutral-700">
 	<div class="flex flex-col shrink-0 w-14 text-gray-300">
 		{#each icons as i}
 			{#if i}
@@ -76,7 +52,6 @@
 					icon={i.icon}
 					info={i.info}
 					activity={i.activity}
-					on:mouseover={(e) => showInfo(e.detail)}
 					on:click={() => handleClick(i)}
 				/>
 			{:else}
@@ -85,10 +60,8 @@
 		{/each}
 	</div>
 	<div
-		class="relative flex flex-col gap-5 shrink-0 w-80 h-full z-30 p-2 bg-neutral-600 text-gray-100 opacity-95"
+		class="absolute left-14 top-0 bottom-0 flex flex-col gap-5 w-80 max-w-[calc(100vw-3.5rem)] z-[100] p-2 bg-neutral-600 text-gray-100 opacity-95 shadow-xl"
 		class:hidden={!activeInfo}
-		on:mouseenter={handleMouseEnterPanel}
-		on:mouseleave={hideInfo}
 	>
 		<div class="absolute right-2 top-2">
 			<SmallButton
