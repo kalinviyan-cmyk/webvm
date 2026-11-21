@@ -55,7 +55,7 @@
 					on:click={() => handleClick(i)}
 				/>
 			{:else}
-				<div class="grow" on:mouseenter={handleMouseEnterPanel}></div>
+				<div class="grow"></div>
 			{/if}
 		{/each}
 	</div>
