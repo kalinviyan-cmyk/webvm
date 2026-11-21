@@ -140,15 +140,17 @@
 	}
 	function setScreenSize(display)
 	{
-		// Keep the virtual framebuffer bounded instead of upscaling small screens.
-		// This reduces canvas memory use, especially on tall mobile displays.
-		var displayWidth = Math.max(1, display.offsetWidth);
-		var displayHeight = Math.max(1, display.offsetHeight);
-		var maxWidth = 1024;
-		var maxHeight = 768;
-		var internalMult = Math.min(1.0, maxWidth / displayWidth, maxHeight / displayHeight);
-		var internalWidth = Math.max(1, Math.floor(displayWidth * internalMult));
-		var internalHeight = Math.max(1, Math.floor(displayHeight * internalMult));
+		var internalMult = 1.0;
+		var displayWidth = display.offsetWidth;
+		var displayHeight = display.offsetHeight;
+		var minWidth = 1024;
+		var minHeight = 768;
+		if(displayWidth < minWidth)
+			internalMult = minWidth / displayWidth;
+		if(displayHeight < minHeight)
+			internalMult = Math.max(internalMult, minHeight / displayHeight);
+		var internalWidth = Math.floor(displayWidth * internalMult);
+		var internalHeight = Math.floor(displayHeight * internalMult);
 		cx.setKmsCanvas(display, internalWidth, internalHeight);
 		// Compute the size to be used for AI screenshots
 		var screenshotMult = 1.0;
