@@ -53,14 +53,11 @@
 	}
 	// Toggles the info panel for the clicked icon.
 	function handleClick(icon) {
-		if(sideBarPinned)
-			return;
-		// Hides the panel if the icon is active. Otherwise, shows the panel with info.
-		if (activeInfo === icon.info) {
-			activeInfo = null;
-		} else {
-			activeInfo = icon.info;
-		}
+		// Mouse/touch enter already opens the panel. Do not toggle it closed
+		// when the subsequent click event arrives (especially on touch screens).
+		activeInfo = icon.info;
+		clearTimeout(hideTimeout);
+		hideTimeout = 0;
 	}
 
 	function toggleSidebarPin() {
