@@ -1,7 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
 	import { aiActivity } from './activities.js';
-	import SmallButton from './SmallButton.svelte';
 	export let handleTool;
 
 	let provider = 'gemini';
@@ -159,11 +158,11 @@
 {#if !keyReady}
 	<p>{providerInfo[provider].name} requires an API key.</p>
 	<textarea class="bg-neutral-700 p-2 rounded-md placeholder-gray-400 resize-none shrink-0" bind:value={apiKey} placeholder={providerInfo[provider].placeholder} rows="2"></textarea>
-	<SmallButton buttonIcon="fa-solid fa-key" buttonText="Save API key" clickHandler={saveKey}/>
+	<button class="bg-neutral-700 hover:bg-neutral-500 p-2 rounded-md" on:click={saveKey}>Save API key</button>
 {:else}
 	<div class="flex items-center gap-2">
 		<span class="text-sm text-green-300">API key saved for {providerInfo[provider].name}</span>
-		<SmallButton buttonIcon="fa-solid fa-trash" buttonText="Forget key" clickHandler={forgetKey}/>
+		<button class="bg-neutral-700 hover:bg-neutral-500 p-2 rounded-md" on:click={forgetKey}>Forget key</button>
 	</div>
 {/if}
 <div class="flex grow flex-col overflow-y-auto gap-2 min-h-0">
@@ -173,7 +172,7 @@
 </div>
 {#if keyReady}
 	<textarea class="bg-neutral-700 p-2 rounded-md placeholder-gray-400 resize-none shrink-0" bind:value={prompt} on:keydown={handleKeydown} placeholder={busy ? 'AI is working…' : 'Message… (Enter to send, Shift+Enter for a new line)'} rows="2" disabled={busy || handleTool === null}></textarea>
-	<SmallButton buttonIcon="fa-solid fa-paper-plane" buttonText={busy ? 'Working…' : 'Send'} clickHandler={send}/>
+	<button class="bg-neutral-700 hover:bg-neutral-500 p-2 rounded-md" on:click={send} disabled={busy}>{busy ? 'Working…' : 'Send'}</button>
 {/if}
 {#if error}<p class="text-red-300 text-sm">{error}</p>{/if}
 <p class="text-xs text-gray-400">Models: Gemini 2.5 Flash and GPT-4.1 mini. API usage is billed by the provider separately from ChatGPT subscriptions.</p>
