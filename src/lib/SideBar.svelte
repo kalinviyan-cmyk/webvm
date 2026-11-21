@@ -6,6 +6,7 @@
 	import CpuTab from './CpuTab.svelte';
 	import DiskTab from './DiskTab.svelte';
 	import AnthropicTab from './AnthropicTab.svelte';
+	import OtherAITab from './OtherAITab.svelte';
 	import PostsTab from './PostsTab.svelte';
 	import DiscordTab from './DiscordTab.svelte';
 	import GitHubTab from './GitHubTab.svelte';
@@ -17,6 +18,7 @@
 		{ icon: 'fas fa-microchip', info: 'CPU', activity: cpuActivity },
 		{ icon: 'fas fa-compact-disc', info: 'Disk', activity: diskActivity },
 		{ icon: 'fas fa-robot', info: 'ClaudeAI', activity: aiActivity },
+		{ icon: 'fas fa-wand-magic-sparkles', info: 'Gemini/OpenAI', activity: aiActivity },
 		null,
 		{ icon: 'fas fa-book-open', info: 'Posts', activity: null },
 		{ icon: 'fab fa-discord', info: 'Discord', activity: null },
@@ -109,6 +111,8 @@
 			<DiskTab on:reset/>
 		{:else if activeInfo === 'ClaudeAI'}
 			<AnthropicTab handleTool={handleTool} />
+		{:else if activeInfo === 'Gemini/OpenAI'}
+			<OtherAITab handleTool={handleTool} />
 		{:else if activeInfo === 'Posts'}
 			<PostsTab/>
 		{:else if activeInfo === 'Discord'}
