@@ -27,6 +27,10 @@
 	var processCount = 0;
 	var curVT = 0;
 	let guiReady = false;
+	let startupStatus = 'Preparing browser terminal…';
+	let startupError = '';
+	let startupSlow = false;
+	let startupWatchdog = null;
 	var sideBarPinned = false;
 	function writeData(buf, vt)
 	{
@@ -176,6 +180,7 @@
 	async function initTerminal()
 	{
 		// Fetch the terminal and VM engine modules concurrently instead of serially.
+		startupStatus = 'Loading the Linux virtualization engine…';
 		const [xtermModule, fitModule, linksModule, cheerpxPromise] = await Promise.all([
 			import('@xterm/xterm'),
 			import('@xterm/addon-fit'),
@@ -212,12 +217,15 @@
 			printMessage(introMessage);
 		try
 		{
+			startupStatus = 'Connecting to the Alpine Linux disk…';
 			await initCheerpX(cheerpxPromise);
 		}
 		catch(e)
 		{
+			startupError = e?.message || String(e);
+			startupStatus = 'Linux startup failed';
 			printMessage(unexpectedErrorMessage);
-			printMessage([e.toString()]);
+			printMessage([String(e?.stack || e)]);
 			return;
 		}
 	}
@@ -229,6 +237,9 @@
 		if(vt != 7)
 			return;
 		guiReady = true;
+		startupError = '';
+		startupStatus = 'Desktop ready';
+		if(startupWatchdog) clearTimeout(startupWatchdog);
 		// Raise the display to the foreground
 		const display = document.getElementById("display");
 		display.parentElement.style.zIndex = 5;
@@ -243,6 +254,7 @@
 	async function initCheerpX(cheerpxPromise)
 	{
 		const CheerpX = await cheerpxPromise;
+		startupStatus = 'Connecting to the remote Alpine disk…';
 		var blockDevice = null;
 		switch(configObj.diskImageType)
 		{
@@ -277,6 +289,7 @@
 			default:
 				throw new Error("Unrecognized device type");
 		}
+		startupStatus = 'Preparing the local disk cache…';
 		blockCache = await CheerpX.IDBDevice.create(cacheId);
 		var overlayDevice = await CheerpX.OverlayDevice.create(blockDevice, blockCache);
 		var webDevice = await CheerpX.WebDevice.create("");
@@ -300,15 +313,14 @@
 			// Convenient access to sample documents in the user directory
 			{type:"dir", dev:documentsDevice, path:"/home/user/documents"}
 		];
+		startupStatus = 'Creating the Linux virtual machine…';
 		try
 		{
 			cx = await CheerpX.Linux.create({mounts: mountPoints, networkInterface: networkInterface});
 		}
 		catch(e)
 		{
-			printMessage(errorMessage);
-			printMessage([e.toString()]);
-			return;
+			throw new Error('Could not create the Linux VM: ' + (e?.message || String(e)));
 		}
 		cx.registerCallback("cpuActivity", cpuCallback);
 		cx.registerCallback("diskActivity", hddCallback);
@@ -322,13 +334,28 @@
 			setScreenSize(display);
 			cx.setActivateConsole(handleActivateConsole);
 		}
-		// Run the command in a loop, in case the user exits
+		// Run the command in a loop, in case the user exits.
+		startupStatus = 'Booting Alpine Linux and starting the graphical desktop…';
 		while (true)
 		{
-			await cx.run(configObj.cmd, configObj.args, configObj.opts);
+			try
+			{
+				await cx.run(configObj.cmd, configObj.args, configObj.opts);
+			}
+			catch(e)
+			{
+				throw new Error('Linux boot stopped: ' + (e?.message || String(e)));
+			}
 		}
 	}
-	onMount(initTerminal);
+	onMount(() => {
+		startupWatchdog = setTimeout(() => { startupSlow = true; }, 45000);
+		initTerminal();
+		return () => {
+			if(startupWatchdog) clearTimeout(startupWatchdog);
+			window.removeEventListener('resize', handleResize);
+		};
+	});
 	async function handleConnect()
 	{
 		const w = window.open("login.html", "_blank");
