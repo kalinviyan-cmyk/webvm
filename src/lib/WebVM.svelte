@@ -187,9 +187,16 @@
 	}
 	async function initTerminal()
 	{
-		const { Terminal } = await import('@xterm/xterm');
-		const { FitAddon } = await import('@xterm/addon-fit');
-		const { WebLinksAddon } = await import('@xterm/addon-web-links');
+		// Fetch the terminal and VM engine modules concurrently instead of serially.
+		const [xtermModule, fitModule, linksModule, cheerpxPromise] = await Promise.all([
+			import('@xterm/xterm'),
+			import('@xterm/addon-fit'),
+			import('@xterm/addon-web-links'),
+			import('@leaningtech/cheerpx')
+		]);
+		const { Terminal } = xtermModule;
+		const { FitAddon } = fitModule;
+		const { WebLinksAddon } = linksModule;
 		term = new Terminal({cursorBlink:true, convertEol:true, fontFamily:"monospace", fontWeight: 400, fontWeightBold: 700, fontSize: computeXTermFontSize()});
 		fitAddon = new FitAddon();
 		term.loadAddon(fitAddon);
@@ -217,7 +224,7 @@
 			printMessage(introMessage);
 		try
 		{
-			await initCheerpX();
+			await initCheerpX(cheerpxPromise);
 		}
 		catch(e)
 		{
@@ -245,9 +252,9 @@
 		if(processCallback)
 			processCallback(processCount);
 	}
-	async function initCheerpX()
+	async function initCheerpX(cheerpxPromise)
 	{
-		const CheerpX = await import('@leaningtech/cheerpx');
+		const CheerpX = await cheerpxPromise;
 		var blockDevice = null;
 		switch(configObj.diskImageType)
 		{
